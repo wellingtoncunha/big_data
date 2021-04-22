@@ -10,11 +10,19 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
+            // //Training
+            // "args": [
+            //     "--sample_size=20000",
+            //     // "--sample_size=2000",
+            //     "--test_size_frac=.3"
+            // ]
+            // Classifying
             "args": [
-                "--sample_size=20000",
-                // "--sample_size=2000",
-                "--test_size_frac=.3"
+                // "--probability_threshold=.65",
+                "--test"
             ]
+
+            
         }
     ]
 }
