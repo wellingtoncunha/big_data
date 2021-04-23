@@ -18,8 +18,10 @@
             // ]
             // Classifying
             "args": [
-                // "--probability_threshold=.65",
-                "--test"
+                "--probability_threshold=.75"
+                // ,"--test"
+                ,"--search_keyword=biden"
+                ,"--fetch_size=100"
             ]
 
             
