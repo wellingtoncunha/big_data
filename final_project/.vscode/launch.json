@@ -21,7 +21,7 @@
                 "--probability_threshold=.75"
                 // ,"--test"
                 ,"--search_keyword=biden"
-                ,"--fetch_size=100"
+                ,"--fetch_size=3"
             ]
 
             

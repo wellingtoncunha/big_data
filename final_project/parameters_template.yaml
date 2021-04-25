@@ -1,0 +1,12 @@
+twitter: # Twitter credentials
+  app_id: <ID of the app on the Twitter developer account>
+  api_key: <API Key generated when configuring the app on Twitter developer account>
+  api_secret_key: <API Secret Key generated when configuring the app on Twitter developer account>
+  bearer_token: <Bearer Token generated when configuring the app on Twitter developer account>
+  access_token: <Access Token that can be generated after the app on Twitter developer account is configured>
+  access_token_secret: <Access Token Secret that can be generated after the app on Twitter developer account is configured>
+mongodb: # MongoDB Credentials
+  user: <MongoDB User Name>
+  password: <MongoDB User Password>
+  host: <MongoDB Host IP or DNS>
+  port: <MongoDB Port>

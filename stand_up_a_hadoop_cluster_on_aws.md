@@ -186,7 +186,7 @@ We are now going to configure the initial settings Name Node. So, let's first pi
 
 ## Common configuration for all nodes
 
-We are going now to configure some files that are common to every node. We are going to do it on the name node and then copy to every datanode
+We are going now to configure some files that are common to every node. We are going to do it on the name node and then copy the configuration files to every datanode
 
 1. Configure the **core-site.xml** file:
 
@@ -289,7 +289,7 @@ We are going now to configure some files that are common to every node. We are g
     sudo chown -R ubuntu $HADOOP_HOME
     ```
 
-7. And now, instead of doing the same for every data node, you can just run the script below for each of the nodes and have everything set on them:
+7. And now, instead of doing the same for every data node, you can just run the script below for each of the nodes and have everything set on them (I'm doing here for one of the datanodes, but you get the idea, right?):
 
     ```bash
     clear
@@ -320,7 +320,7 @@ We are going now to configure some files that are common to every node. We are g
     ssh datanode1 pip3 install mrjob
     ```
 
-    **Note**: I'm taking the chance here to install python3, pip3 and mrjob because I'm using them and they need to be installed in each one of the data nodes
+    **Note**: I'm taking the chance to install python3, pip3 and mrjob because I'm using them and they need to be installed in each one of the data nodes
 
 ## Specific configurations for Name Node (and finally starting Hadoop)
 
@@ -368,7 +368,7 @@ The steps below are the final configuration for Name Node
         echo $(hostname)
         ```
 
-    * For some unknown reason (another one!), the services were not starting if I add the localhost as one of the data nodes, so, I just stopped using it by removing any reference to localhost from slaves file
+    * For some unknown reason (another one!), the services were not starting after I have restarted EC2 machines if I add the localhost as one of the data nodes, so, I just stopped using it by removing any reference to localhost from slaves file. Feel free to fork, change and submit a PR if you find a solution =)
 
 3. Format file system:
 
@@ -400,7 +400,24 @@ The steps below are the final configuration for Name Node
     $HADOOP_HOME/sbin/mr-jobhistory-daemon.sh start historyserver
     ```
 
-8. If you want to see what JAVA processes are running:
+8. [**Not working, need to investigate more**] You can set up Hadoop services to start at boot. To do so, you need to create a bash script under /etc/init.d, as below:
+
+    ```bash
+    sudo touch /etc/init.d/hadoop.sh
+    sudo chown -R ubuntu /etc/init.d/hadoop.sh
+    sudo chmod +x /etc/init.d/hadoop.sh
+    sudo nano /etc/init.d/hadoop.sh
+    ```
+
+    Then you need to call the scripts above from inside this script:
+
+    ```bash
+    $HADOOP_HOME/sbin/start-dfs.sh;
+    $HADOOP_HOME/sbin/start-yarn.sh;
+    $HADOOP_HOME/sbin/mr-jobhistory-daemon.sh start historyserver;
+    ```
+
+9. If you want to see what JAVA processes are running:
 
     ```bash
     jps
@@ -408,7 +425,7 @@ The steps below are the final configuration for Name Node
 
     !["jps"](https://user-images.githubusercontent.com/7594950/108001726-47da7a00-6fbb-11eb-8b3e-e4accd81f872.png)
 
-9. You can check the status of the cluster using the Name Node Web UI:<br>\<Public IPv4 address>:50070 (port need to be available on security groups assigned to the server)
+10. You can check the status of the cluster using the Name Node Web UI:<br>\<Public IPv4 address>:50070 (port need to be available on security groups assigned to the server)
 
     !["image205"](https://user-images.githubusercontent.com/7594950/108001963-00082280-6fbc-11eb-8e95-4f52539a49ff.png)
 

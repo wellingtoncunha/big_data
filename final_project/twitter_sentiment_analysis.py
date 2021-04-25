@@ -16,6 +16,7 @@ import yaml
 import json
 import unidecode
 import time
+import pymongo
 
 base_folder = os.getcwd()
 temporary_folder = os.path.join(os.getcwd(), 'tmp')
@@ -89,15 +90,19 @@ def get_twitter(search_keyword, fetch_size):
     parameters = os.path.abspath(os.path.join(base_folder, "parameters.yaml"))
     parameters = yaml.load(open(parameters))
     twitter_api = twitter.Api(
-        consumer_key = parameters["api_key"],
-        consumer_secret = parameters["api_secret_key"],
-        access_token_key = parameters["access_token"],
-        access_token_secret= parameters["access_token_secret"],
-        tweet_mode="extended"
+        consumer_key = parameters["twitter"]["api_key"],
+        consumer_secret = parameters["twitter"]["api_secret_key"],
+        access_token_key = parameters["twitter"]["access_token"],
+        access_token_secret= parameters["twitter"]["access_token_secret"],
+        tweet_mode="extended" # This option brings the whole tweet content, including its metadata
     )
     print(twitter_api.VerifyCredentials())
 
-    tweets_fetched = twitter_api.GetSearch(search_keyword, lang = "en", count = fetch_size)
+    tweets_fetched = twitter_api.GetSearch(
+        search_keyword, 
+        lang = "en", # As our classification model was developed with English words, it does not make sense to bring other languages
+        count = fetch_size
+    )
     
     print("Fetched " + str(len(tweets_fetched)) + " tweets for the term " + search_keyword)
     li = []
@@ -114,6 +119,36 @@ def get_twitter(search_keyword, fetch_size):
     twitter_dataset = pd.DataFrame(li)
 
     return twitter_dataset.to_dict("records") 
+
+def load_into_database(inbound_dataset, search_keyword):
+    parameters = os.path.abspath(os.path.join(base_folder, "parameters.yaml"))
+    parameters = yaml.load(open(parameters))
+    mongo_client = pymongo.MongoClient(
+        "mongodb://" + parameters["mongodb"]["user"] + 
+        ":" + parameters["mongodb"]["password"] + 
+        "@" + parameters["mongodb"]["host"] + 
+        ":" + str(parameters["mongodb"]["port"]) +
+        "/" 
+    )
+
+    db_name = mongo_client["twitter_analysis"]
+    db_collection = db_name["sentiment_analysis"]
+    for index, each_tweet in inbound_dataset.iterrows():
+        #drop if exists based on ID
+        rows = db_collection.delete_many({"_id": each_tweet["tweet_id"]})
+        print(rows.deleted_count, "deleted")
+        #insert record
+        row = {
+            "_id": each_tweet["tweet_id"],
+            "date": each_tweet["date"],
+            "query": search_keyword,
+            "user": each_tweet["user"],
+            "tweet": each_tweet["tweet"],
+            "predicted": each_tweet["predicted"],
+            "probability": each_tweet["probability"]
+        }     
+        rows = db_collection.insert_one(row)   
+        print(rows.inserted_id, "inserted")
 
 def main():
     parser = argparse.ArgumentParser(description="Twitter sentiment analysis classification")
@@ -176,6 +211,7 @@ def main():
 
             inbound_dataset = get_twitter(search_keyword, fetch_size)
             outbound_dataset = classify_tweets(inbound_dataset, probability_threshold)
+            load_into_database(outbound_dataset, search_keyword)
 
             output_folder = os.path.join(os.getcwd(), 'outbound')    
             if not os.path.exists(output_folder):
@@ -183,8 +219,6 @@ def main():
             file_name = "outbound_" + time.strftime("%Y%m%d_%H%M%S") + ".csv"
             file_name = os.path.join(output_folder, file_name)
             outbound_dataset.to_csv(file_name, index=False)
-
-
 
 if __name__ == "__main__":
     main()
