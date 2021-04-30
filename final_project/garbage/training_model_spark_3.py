@@ -45,61 +45,62 @@ unzip_files()
 
 from pyspark.sql import SparkSession, functions
 
+
 spark = SparkSession.builder.master("local").appName("Training Twitter Sentiment Analysis").getOrCreate()
-training_data = spark.read.load(
-    "tmp/training.1600000.processed.noemoticon.csv",
+test_data = spark.read.load(
+    "tmp/testdata.manual.2009.06.14.csv",
     format="csv")
-training_data = training_data.withColumnRenamed("_c0", "label") \
+test_data = test_data.withColumnRenamed("_c0", "label") \
     .withColumnRenamed("_c1", "tweet_id") \
     .withColumnRenamed("_c2", "date") \
     .withColumnRenamed("_c3", "query") \
     .withColumnRenamed("_c4", "user") \
     .withColumnRenamed("_c5", "tweet")
-
-sample_size = 10000
-training_data = training_data.sample(sample_size / 1600000)
-
-training_data = training_data.select(functions.col("label"), functions.col("tweet"))
+test_data = test_data.withColumn("label", functions.col("label").cast("integer"))
 
 udf_cleansing_and_tokenizing = functions.udf(cleansing_and_tokenizing)
-training_data = training_data.withColumn("tweet_cleansed", udf_cleansing_and_tokenizing(functions.col("tweet")))
-training_data = training_data.withColumn("tweet_cleansed", functions.split("tweet_cleansed", " ")) 
+test_data = test_data.withColumn("tweet_cleansed", udf_cleansing_and_tokenizing(functions.col("tweet")))
 
-#training_data.show(5)
+from pyspark.ml.feature import Tokenizer
 
-vocabulary = training_data.withColumn("word", functions.explode("tweet_cleansed")).select(functions.col("word"))
-#print("Count:", vocabulary.count())
-vocabulary = vocabulary.distinct()
-#print("Distinct count:", vocabulary.count())
-vocabulary = vocabulary.withColumn("dummy_col", functions.lit(1))
-vocabulary_list = vocabulary.groupBy("dummy_col").agg(functions.collect_list("word"))
-vocabulary_list = vocabulary_list.withColumnRenamed("collect_list(word)", "words")
+tokenizer = Tokenizer(inputCol="tweet_cleansed", outputCol="words")
+test_data = tokenizer.transform(test_data)
 
-training_data = training_data.join(vocabulary_list.select("words"))
-#df.withColumnRenamed('id', 'id1').crossJoin(df.withColumnRenamed('id', 'id2')).show()
-#training_data.show(5)
+from pyspark.ml.feature import HashingTF
+hashingTF = HashingTF(inputCol="words", outputCol="term_freq")
+test_data = hashingTF.transform(test_data)
+test_data.show(5)
 
-def extract_features(tweet, vocabulary):
-# Extract features (tag words using on twitter into a instance of dictionary)
-    tweet_words=set(tweet)
-    features={}
-    for word in vocabulary:
-        features['contains(%s)' % word]=(word in tweet_words)
-    return features 
+from pyspark.ml.feature import IDF 
+idf = IDF(inputCol="term_freq", outputCol="tfidf")
+idfModel = idf.fit(test_data)
+test_data = idfModel.transform(test_data)
+test_data.show(5)
 
-udf_extract_features = functions.udf(extract_features)
-training_data = training_data.withColumn(
-    "features", 
-    udf_extract_features(functions.col("tweet"), functions.col("words"))
-)
+from pyspark.ml.feature import StringIndexer
+stringIndexer = StringIndexer(inputCol="label", outputCol="labelIndex")
+model = stringIndexer.fit(test_data)
+test_data = model.transform(test_data)
+test_data.show(5)
 
-#training_data.show(5)
-training, test = training_data.select("features", "label").randomSplit([0.5, 0.5])
+predicted = test_data.select("tfidf", "labelIndex")
+predicted.show(5)
 
-#training.show(5)
+model_folder = os.path.join(os.getcwd(), 'saved_models')
+model_full_path = os.path.join(model_folder, "twitter_sentiment_spark")
+if not os.path.exists(model_folder):
+    print("model does not exists")
 
-training_features = training.rdd.map(tuple).collect()
-training_features
+from pyspark.ml.classification import NaiveBayes, NaiveBayesModel
+loadModel = NaiveBayesModel.load(model_full_path)
+predicted = loadModel.transform(predicted)
+predicted.show()
 
-# import nltk
-# Classifier = nltk.NaiveBayesClassifier.train(training_features)
+total = predicted.count()
+correct = predicted.where(predicted['labelIndex'] == predicted['NB_pred']).count()
+accuracy = correct/total
+
+print(
+    "\nTotal:", total, 
+    "\nCorrect:", correct, 
+    "\nAccuracy:", accuracy)

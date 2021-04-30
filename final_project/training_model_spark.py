@@ -155,6 +155,8 @@ def main():
     # conf = SparkConf().setAppName("WorstMovies").setMaster("local")
     # sc = SparkContext(conf = conf)
 
+    from pyspark.ml.classification import NaiveBayes, NaiveBayesModel
+
     ## Generate Labeled file
     spark = SparkSession.builder.master("local").appName("Training Twitter Sentiment Analysis").getOrCreate()
     training_data = spark.read.load(
@@ -241,6 +243,7 @@ def main():
     # Train dataset
     # https://spark.apache.org/docs/latest/mllib-naive-bayes.html 
     # https://spark.apache.org/docs/latest/api/python/reference/api/pyspark.mllib.regression.LabeledPoint.html
+    # https://larry-lu.github.io/data/Naive-Bayes-news-classification/
 
     # Build TwitterSEntimentAnalysis class
     twitter_sentiment_classifier = TwitterSentimentAnalysis()
