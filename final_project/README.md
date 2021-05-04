@@ -9,6 +9,7 @@
 3. **[Done]** Code classification script (https://github.com/wellingtoncunha/big_data/blob/master/final_project/twitter_sentiment_analysis.py)
 4. **[Done]** Code Twitter extractor (is in the same script of item 3)
 5. **[Done]** Code pipeline: Extract Twitter -> Classify (using model trained in step 2) -> store on DB (MongoDB) (is in the same script of item 3)
-6. Implement pyspark
-7. Run on Hadoop
-8. Create report (with screenshots)
+6. **[Done]** Implement pyspark
+7. Implement Spark streaming
+8. Run on Hadoop
+9. Create report (with screenshots)
