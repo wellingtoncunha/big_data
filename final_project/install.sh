@@ -22,6 +22,7 @@ pip3 install nltk
 pip3 install bs4
 
 cd /app/twitter_sentiment_analysis/
+# sudo nano python3 /app/twitter_sentiment_analysis/training_model_spark.py
 python3 /app/twitter_sentiment_analysis/training_model_spark.py
 spark-submit --master yarn --deploy-mode cluster  /app/twitter_sentiment_analysis/training_model_spark.py
 

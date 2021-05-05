@@ -7,7 +7,6 @@ import yaml
 from pyspark.sql import SparkSession, functions
 import nltk
 from nltk.tokenize import word_tokenize
-from nltk.corpus import stopwords 
 from string import punctuation 
 from bs4 import BeautifulSoup
 import re
@@ -38,6 +37,7 @@ def unzip_files():
 
 def cleansing(tweet):
 # Cleansing tweet
+    from nltk.corpus import stopwords 
     terms_to_remove = set(stopwords.words("english") + ["USERTAGGING","URL"])
     tweet = BeautifulSoup(tweet, 'html.parser').get_text() # Extracts text from HTML (just in case!)
     tweet = tweet.lower() # Converts text to lower-case
@@ -58,13 +58,14 @@ def main():
     # Unzip file on a temporary folder                                         
     unzip_files()
 
-   
-    
-    # if files_source == "hdfs":
-    #     os.subprocess.call(['hadoop fs -copyFromLocal /tmp/mike/test* hdfs:///user/edwaeadt/app'], shell=True)
-    training_data = spark.read.load(
-        "tmp/training.1600000.processed.noemoticon.csv",
-        format="csv")
+    if files_source == "hdfs":
+        training_data = spark.read.load(
+            "/tmp/training.1600000.processed.noemoticon.csv",
+            format="csv")
+    elif files_source == "local":
+        training_data = spark.read.load(
+            "tmp/training.1600000.processed.noemoticon.csv",
+            format="csv")        
     training_data = training_data.withColumnRenamed("_c0", "label") \
         .withColumnRenamed("_c1", "tweet_id") \
         .withColumnRenamed("_c2", "date") \
@@ -81,7 +82,7 @@ def main():
 
     # Run the cleansing UDF for tweet column
     udf_cleansing = functions.udf(cleansing)
-    training_data = training_data.withColumn("tweet_cleansed", udf_cleansing(functions.col("tweet").cast("string")))
+    training_data = training_data.withColumn("tweet_cleansed", udf_cleansing(functions.col("tweet")))
 
     # Tokenizing
     from pyspark.ml.feature import Tokenizer
