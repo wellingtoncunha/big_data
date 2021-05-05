@@ -16,15 +16,17 @@ nltk.download('punkt')
 # Start Spark session, load the dataset into a Spark DataFrame and then adjust column names
 spark = SparkSession.builder.appName("Training Twitter Sentiment Analysis").getOrCreate()
 
+base_folder = os.getcwd()
+temporary_folder = os.path.join(os.getcwd(), "tmp")
+parameters = os.path.abspath(os.path.join(base_folder, "parameters.yaml"))
+
 # Load execution parameter (we replaced args because it is easy for calling :) )
 parameters = yaml.load(open(parameters))
 sample_size = parameters["training"]["sample_size"]
 test_size_fraction = parameters["training"]["test_size_fraction"]
 files_source = parameters["training"]["files_source"]
 
-base_folder = os.getcwd()
-temporary_folder = os.path.join(os.getcwd(), "tmp")
-parameters = os.path.abspath(os.path.join(base_folder, "parameters.yaml"))
+
 
 def unzip_files():
 # Unzip file on a temporary folder
