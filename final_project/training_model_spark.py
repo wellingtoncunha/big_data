@@ -35,8 +35,6 @@ def unzip_files():
 
 def cleansing(tweet):
 # Cleansing tweet
-
-    
     terms_to_remove = set(stopwords.words("english") + ["USERTAGGING","URL"])
     tweet = BeautifulSoup(tweet, 'html.parser').get_text() # Extracts text from HTML (just in case!)
     tweet = tweet.lower() # Converts text to lower-case
@@ -52,29 +50,6 @@ def cleansing(tweet):
             words = words + " " + each_word
     # return [word for word in tweet if word not in terms_to_remove]
     return words[1:]
-
-def preprocess_dataset(dataset):
-    # Run the cleansing UDF for tweet column
-    udf_cleansing = functions.udf(cleansing)
-    dataset = dataset.withColumn("tweet_cleansed", udf_cleansing(functions.col("tweet")))
-
-    # Tokenizing
-    from pyspark.ml.feature import Tokenizer
-    tokenizer = Tokenizer(inputCol="tweet_cleansed", outputCol="words")
-    dataset = tokenizer.transform(dataset)
-
-    # Generating features
-    from pyspark.ml.feature import HashingTF
-    hashingTF = HashingTF(inputCol="words", outputCol="features")
-    dataset = hashingTF.transform(dataset)
-
-    # Generate label indexes
-    from pyspark.ml.feature import StringIndexer
-    stringIndexer = StringIndexer(inputCol="label", outputCol="labelIndex")
-    model = stringIndexer.fit(dataset)
-    dataset = model.transform(dataset)
-
-    return dataset
 
 def main():
     # Unzip file on a temporary folder                                         
@@ -98,10 +73,29 @@ def main():
     if sample_size > 0: 
         training_data = training_data.sample(sample_size / training_data.count())
 
-    # Preprocess dataset
+    ## Preprocess dataset
     training_data = training_data.select(functions.col("label"), functions.col("tweet"))
-    training_data = preprocess_dataset(training_data)
 
+    # Run the cleansing UDF for tweet column
+    udf_cleansing = functions.udf(cleansing)
+    training_data = training_data.withColumn("tweet_cleansed", udf_cleansing(functions.col("tweet")))
+
+    # Tokenizing
+    from pyspark.ml.feature import Tokenizer
+    tokenizer = Tokenizer(inputCol="tweet_cleansed", outputCol="words")
+    training_data = tokenizer.transform(training_data)
+
+    # Generating features
+    from pyspark.ml.feature import HashingTF
+    hashingTF = HashingTF(inputCol="words", outputCol="features")
+    training_data = hashingTF.transform(training_data)
+
+    # Generate label indexes
+    from pyspark.ml.feature import StringIndexer
+    stringIndexer = StringIndexer(inputCol="label", outputCol="labelIndex")
+    model = stringIndexer.fit(training_data)
+    training_data = model.transform(training_data)
+    
     # Split dataset into training and test according to test_size_frac arg
     training, test = training_data.randomSplit([1 - test_size_fraction, test_size_fraction])
     
