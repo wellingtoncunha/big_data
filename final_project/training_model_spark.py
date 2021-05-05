@@ -125,7 +125,7 @@ def main():
         os.makedirs(model_folder)
         
     model_full_path = os.path.join(model_folder, "twitter_sentiment_spark")
-    if files_source = "hdfs"
+    if files_source == "hdfs":
         model_full_path = "file://" + model_full_path
     nbModel.write().overwrite().save(model_full_path)
 
