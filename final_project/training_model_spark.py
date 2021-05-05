@@ -5,6 +5,13 @@ import argparse
 import sys
 import yaml
 from pyspark.sql import SparkSession, functions
+import nltk
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords 
+from string import punctuation 
+from bs4 import BeautifulSoup
+import re
+nltk.download('stopwords')
 
 base_folder = os.getcwd()
 temporary_folder = os.path.join(os.getcwd(), "tmp")
@@ -12,6 +19,7 @@ parameters = os.path.abspath(os.path.join(base_folder, "parameters.yaml"))
 parameters = yaml.load(open(parameters))
 sample_size = parameters["training"]["sample_size"]
 test_size_fraction = parameters["training"]["test_size_fraction"]
+files_source = parameters["training"]["files_source"]
 
 def unzip_files():
 # Unzip file on a temporary folder
@@ -27,11 +35,7 @@ def unzip_files():
 
 def cleansing(tweet):
 # Cleansing tweet
-    from nltk.tokenize import word_tokenize
-    from nltk.corpus import stopwords 
-    from string import punctuation 
-    from bs4 import BeautifulSoup
-    import re
+
     
     terms_to_remove = set(stopwords.words("english") + ["USERTAGGING","URL"])
     tweet = BeautifulSoup(tweet, 'html.parser').get_text() # Extracts text from HTML (just in case!)
@@ -78,8 +82,10 @@ def main():
 
     # Start Spark session, load the dataset into a Spark DataFrame and then adjust column names
     spark = SparkSession.builder.appName("Training Twitter Sentiment Analysis").getOrCreate()
+    # if files_source == "hdfs":
+    #     os.subprocess.call(['hadoop fs -copyFromLocal /tmp/mike/test* hdfs:///user/edwaeadt/app'], shell=True)
     training_data = spark.read.load(
-        "tmp/training.1600000.processed.noemoticon.csv",
+        "/tmp/training.1600000.processed.noemoticon.csv",
         format="csv")
     training_data = training_data.withColumnRenamed("_c0", "label") \
         .withColumnRenamed("_c1", "tweet_id") \

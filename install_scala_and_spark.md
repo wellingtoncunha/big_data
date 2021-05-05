@@ -42,8 +42,9 @@ Spark installation requires more steps. But it is not rocket science!
     ```bash
     # SPARK configurations
     export SPARK_HOME=/usr/local/spark
-    export PATH=$PATH:$SPARK_HOME/bin
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HADOOP_HOME/lib/native
+    export PYTHONPATH=$SPARK_HOME/python:$SPARK_HOME/python/lib/py4j-0.10.9-src.zip:$PYTHONPATH
+    export PATH=$SPARK_HOME/bin:$SPARK_HOME/python:$PATH
     ```
 
     And here are the places (add the block above to the end of each file):
