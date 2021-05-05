@@ -77,7 +77,7 @@ def main():
     unzip_files()
 
     # Start Spark session, load the dataset into a Spark DataFrame and then adjust column names
-    spark = SparkSession.builder.master("local").appName("Training Twitter Sentiment Analysis").getOrCreate()
+    spark = SparkSession.builder.appName("Training Twitter Sentiment Analysis").getOrCreate()
     training_data = spark.read.load(
         "tmp/training.1600000.processed.noemoticon.csv",
         format="csv")
