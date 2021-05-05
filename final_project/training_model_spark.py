@@ -13,6 +13,9 @@ from bs4 import BeautifulSoup
 import re
 nltk.download('stopwords')
 
+# Start Spark session, load the dataset into a Spark DataFrame and then adjust column names
+spark = SparkSession.builder.appName("Training Twitter Sentiment Analysis").getOrCreate()
+
 base_folder = os.getcwd()
 temporary_folder = os.path.join(os.getcwd(), "tmp")
 parameters = os.path.abspath(os.path.join(base_folder, "parameters.yaml"))
@@ -55,8 +58,8 @@ def main():
     # Unzip file on a temporary folder                                         
     unzip_files()
 
-    # Start Spark session, load the dataset into a Spark DataFrame and then adjust column names
-    spark = SparkSession.builder.appName("Training Twitter Sentiment Analysis").getOrCreate()
+   
+    
     # if files_source == "hdfs":
     #     os.subprocess.call(['hadoop fs -copyFromLocal /tmp/mike/test* hdfs:///user/edwaeadt/app'], shell=True)
     training_data = spark.read.load(
@@ -78,7 +81,7 @@ def main():
 
     # Run the cleansing UDF for tweet column
     udf_cleansing = functions.udf(cleansing)
-    training_data = training_data.withColumn("tweet_cleansed", udf_cleansing(functions.col("tweet")))
+    training_data = training_data.withColumn("tweet_cleansed", udf_cleansing(functions.col("tweet").cast("string")))
 
     # Tokenizing
     from pyspark.ml.feature import Tokenizer
