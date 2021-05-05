@@ -24,6 +24,15 @@ mongo_connection_string = (
     "/" 
 )
 
+if test_execution == False:
+    conf = SparkConf()\
+        .set("spark.jars", "mongo-spark-connector_2.12-3.0.1.jar") \
+        .set("spark.jars.packages", "org.mongodb.spark:mongo-spark-connector_2.12:3.0.1") \
+        .set("spark.mongodb.input.uri", mongo_connection_string) \
+        .set("spark.mongodb.output.uri", mongo_connection_string)
+    sc = SparkContext(conf=conf)
+    ssc = StreamingContext(sc, 60)
+
 def store_into_database(tweet_id, date, query, user, tweet, polarity, probability):
     db_name = mongo_client["twitter_analysis"]
     db_collection = db_name["sentiment_analysis"]
@@ -154,10 +163,6 @@ def getSparkSessionInstance(sparkConf):
         globals()["sparkSessionSingletonInstance"] = SparkSession \
             .builder \
             .config(conf=sparkConf) \
-            .config("spark.jars", "mongo-spark-connector_2.12-3.0.1.jar") \
-            .config("spark.jars.packages", "org.mongodb.spark:mongo-spark-connector_2.12:3.0.1")\
-            .config("spark.mongodb.input.uri", mongo_connection_string) \
-            .config("spark.mongodb.output.uri", mongo_connection_string) \
             .getOrCreate()
     return globals()["sparkSessionSingletonInstance"]
 
@@ -191,27 +196,8 @@ def process_streaming(time, rdd):
         
         mongo_items.write.format("mongo").mode("append").option("database",
             "twitter_analysis").option("collection", "sentiment_analysis").save()
-#     # #         db_name = mongo_client["twitter_analysis"]
-#     # # db_collection = db_name["sentiment_analysis"]
-# # store_into_database(tweet_id, date, query, user, tweet, polarity, probability)
 
-#         udf_store_into_database = functions.udf(store_into_database)
-#         outbound_dataset = outbound_dataset.withColumn(
-#             "status",
-#             udf_store_into_database(
-#                 functions.col("_id"),
-#                 functions.col("date"),
-#                 functions.col("query"),
-#                 functions.col("user"),
-#                 functions.col("tweet"),
-#                 functions.col("label_predicted"),
-#                 functions.col("probability")
-#             )
-        
-#         )
-            
-
-        outbound_dataset.select("tweet_id", "date", "query", "user", "tweet", "label_predicted", "probability", "status").show()
+        #outbound_dataset.select("tweet_id", "date", "query", "user", "tweet", "label_predicted", "probability").show()
 # https://spark.apache.org/docs/latest/streaming-programming-guide.html#dataframe-and-sql-operations
 # https://docs.cloudera.com/documentation/enterprise/latest/topics/cdh_ig_running_spark_on_yarn.html
 # https://sparkbyexamples.com/spark/spark-submit-command/
@@ -271,8 +257,7 @@ def main():
     else:
         os.system("clear")
         # conf = SparkConf().set("spark.jars", "mongo-spark-connector_2.12-3.0.1.jar")
-        sc = SparkContext()
-        ssc = StreamingContext(sc, 60)
+
 
         TCP_IP = parameters["spark"]["host"]
         TCP_PORT = parameters["spark"]["port"]

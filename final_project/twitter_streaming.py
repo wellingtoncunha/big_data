@@ -38,17 +38,20 @@ def get_tweets():
 def send_tweets_to_spark(http_response, tcp_connection):
     try:
         for each_line in http_response.iter_lines():
-            each_tweet = json.loads(each_line)
-            
-            row = (
-                (str(each_tweet["id"]) if "id" in each_tweet else "") + "\t" +
-                (str(each_tweet["created_at"]) if "created_at" in each_tweet else "")  + "\t" +
-                str(query) + "\t" +
-                (str(each_tweet["user"]["screen_name"]) if "screen_name" in each_tweet["user"] else "")  + "\t" +
-                BeautifulSoup(each_tweet["text"], "html.parser").get_text().replace("\n", " ") + "\n"
-            )
-            # print(row)
-            tcp_connection.send(row.encode()) 
+            try:
+                each_tweet = json.loads(each_line)
+                
+                row = (
+                    (str(each_tweet["id"]) if "id" in each_tweet else "") + "\t" +
+                    (str(each_tweet["created_at"]) if "created_at" in each_tweet else "")  + "\t" +
+                    str(query) + "\t" +
+                    (str(each_tweet["user"]["screen_name"]) if "screen_name" in each_tweet["user"] else "")  + "\t" +
+                    BeautifulSoup(each_tweet["text"], "html.parser").get_text().replace("\n", " ") + "\n"
+                )
+                # print(row)
+                tcp_connection.send(row.encode()) 
+            except Exception as e:
+                print("Error (skipping tweet): %s" % e)
     except:
        	e = sys.exc_info()[0]
         print("Error: %s" % e)

@@ -20,14 +20,16 @@ pip3 install pyspark
 pip3 install numpy
 pip3 install nltk
 pip3 install bs4
-pip3 install pandas --upgrad
+pip3 install pandas --upgrade
 
 cd /app/twitter_sentiment_analysis/
 # sudo nano python3 /app/twitter_sentiment_analysis/training_model_spark.py
 python3 /app/twitter_sentiment_analysis/training_model_spark.py
-spark-submit --master yarn --deploy-mode cluster  /app/twitter_sentiment_analysis/training_model_spark.py
+# spark-submit --master yarn --deploy-mode cluster  /app/twitter_sentiment_analysis/training_model_spark.py
+
 
 import pip3 install requests_oauthlib
+
 sudo cp ~/Downloads/big_data/final_project/twitter_sentiment_analysis_spark.py /app/twitter_sentiment_analysis/
 
 
@@ -36,3 +38,4 @@ sudo cp ~/Downloads/big_data/final_project/twitter_sentiment_analysis_spark.py /
 export PYSPARK_PYTHON=python3
 
 http://54.158.162.208:8088/cluster/app/application_1620224092720_0002
+http://54.158.162.208:8088/proxy/application_1620224092720_0028
