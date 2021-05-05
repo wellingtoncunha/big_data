@@ -11,6 +11,7 @@ from string import punctuation
 from bs4 import BeautifulSoup
 import re
 nltk.download('stopwords')
+nltk.download('punkt')
 
 # Start Spark session, load the dataset into a Spark DataFrame and then adjust column names
 spark = SparkSession.builder.appName("Training Twitter Sentiment Analysis").getOrCreate()
