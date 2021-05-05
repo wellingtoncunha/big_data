@@ -63,7 +63,7 @@ def main():
     # if files_source == "hdfs":
     #     os.subprocess.call(['hadoop fs -copyFromLocal /tmp/mike/test* hdfs:///user/edwaeadt/app'], shell=True)
     training_data = spark.read.load(
-        "/tmp/training.1600000.processed.noemoticon.csv",
+        "tmp/training.1600000.processed.noemoticon.csv",
         format="csv")
     training_data = training_data.withColumnRenamed("_c0", "label") \
         .withColumnRenamed("_c1", "tweet_id") \
