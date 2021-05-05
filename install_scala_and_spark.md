@@ -77,6 +77,21 @@ Spark installation requires more steps. But it is not rocket science!
         source ~/.bashrc
         ```
 
+5. Configure 
+
+    ```bash
+    sudo nano $SPARK_HOME/conf/spark-defaults.conf
+    ```
+
+    * Then add the folllowing to the file:
+
+        ```bash
+        spark.master yarn
+        spark.driver.memory 512m
+        spark.yarn.am.memory 512m
+        spark.executor.memory 512m
+        ```
+
 5. To start Spark shell we use:
 
     ```bash

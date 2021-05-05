@@ -4,8 +4,9 @@ import zipfile
 import argparse
 import sys
 import yaml
-from pyspark.sql import SparkSession, functions, Row
-from pyspark import SparkContext
+import pymongo
+from pyspark.sql import SparkSession, functions, Row, types
+from pyspark import SparkContext, SparkConf
 from pyspark.streaming import StreamingContext
 
 base_folder = os.getcwd()
@@ -13,6 +14,36 @@ temporary_folder = os.path.join(os.getcwd(), 'tmp')
 
 parameters = os.path.abspath(os.path.join(base_folder, "parameters.yaml"))
 parameters = yaml.load(open(parameters))
+probability_threshold = parameters["classifying"]["probability_threshold"]
+test_execution = parameters["classifying"]["test_execution"]
+mongo_connection_string = (
+    "mongodb://" + parameters["mongodb"]["user"] + 
+    ":" + parameters["mongodb"]["password"] + 
+    "@" + parameters["mongodb"]["host"] + 
+    ":" + str(parameters["mongodb"]["port"]) +
+    "/" 
+)
+
+def store_into_database(tweet_id, date, query, user, tweet, polarity, probability):
+    db_name = mongo_client["twitter_analysis"]
+    db_collection = db_name["sentiment_analysis"]
+
+    #drop if exists based on ID
+    rows = db_collection.delete_many({"_id": tweet})
+    print(rows.deleted_count, "deleted")
+    #insert record
+    row = {
+        "_id": tweet_id,
+        "date": date,
+        "query": query,
+        "user": user,
+        "tweet": tweet,
+        "predicted": polarity,
+        "probability": probability
+    }     
+    rows = db_collection.insert_one(row)   
+    print(rows.inserted_id, "inserted")
+    return "Stored"
 
 def get_probability(probability_vector, predicted_label_index):
     probability_array = probability_vector.tolist()
@@ -68,9 +99,7 @@ def cleansing(tweet):
 
     return words[1:]
 
-
-
-def classify_tweets(inbound_dataset, probability_threshold):
+def classify_tweets(inbound_dataset):
     # Run the cleansing UDF for tweet column
     udf_cleansing = functions.udf(cleansing)
     inbound_dataset = inbound_dataset.withColumn("tweet_cleansed", udf_cleansing(functions.col("tweet")))
@@ -85,11 +114,11 @@ def classify_tweets(inbound_dataset, probability_threshold):
     features_generator = HashingTF(inputCol="words", outputCol="features")
     inbound_dataset = features_generator.transform(inbound_dataset)
 
-    # Generate label indexes
-    from pyspark.ml.feature import StringIndexer
-    string_indexer = StringIndexer(inputCol="label", outputCol="labelIndex")
-    model = string_indexer.fit(inbound_dataset)
-    inbound_dataset = model.transform(inbound_dataset)
+    # # Generate label indexes
+    # from pyspark.ml.feature import StringIndexer
+    # string_indexer = StringIndexer(inputCol="label", outputCol="labelIndex")
+    # model = string_indexer.fit(inbound_dataset)
+    # inbound_dataset = model.transform(inbound_dataset)
 
     model_folder = os.path.join(os.getcwd(), "saved_models")
     model_full_path = os.path.join(model_folder, "twitter_sentiment_spark")
@@ -102,9 +131,10 @@ def classify_tweets(inbound_dataset, probability_threshold):
     # Classifying using saved model
     classified = loaded_model.transform(inbound_dataset)
 
-    labels = classified.select("labelIndex", "label").distinct() \
-        .withColumnRenamed("label", "label_predicted") \
-        .withColumnRenamed("labelIndex", "label_id")
+    spark = getSparkSessionInstance(inbound_dataset.rdd.context.getConf())
+    labels = spark.read.load(
+        os.path.join(model_folder, "labels.csv"),
+        format="csv", header=True)
 
     classified = classified.join(labels, classified["NB_pred"] == labels["label_id"])
 
@@ -124,6 +154,10 @@ def getSparkSessionInstance(sparkConf):
         globals()["sparkSessionSingletonInstance"] = SparkSession \
             .builder \
             .config(conf=sparkConf) \
+            .config("spark.jars", "mongo-spark-connector_2.12-3.0.1.jar") \
+            .config("spark.jars.packages", "org.mongodb.spark:mongo-spark-connector_2.12:3.0.1")\
+            .config("spark.mongodb.input.uri", mongo_connection_string) \
+            .config("spark.mongodb.output.uri", mongo_connection_string) \
             .getOrCreate()
     return globals()["sparkSessionSingletonInstance"]
 
@@ -132,76 +166,126 @@ def process_streaming(time, rdd):
     if rdd.count() > 0:
         spark = getSparkSessionInstance(rdd.context.getConf())
         
-        rowRdd = rdd.map(lambda w: Row(word=w))
-        wordsDataFrame = spark.createDataFrame(rowRdd)
+        rdd_rows = rdd.map(lambda w: Row(full_tweet = w))
+    
+        inbound_dataset = spark.createDataFrame(rdd_rows)
+        # inbound_dataset = tweet_stream.select
+        inbound_dataset = inbound_dataset.select(functions.split(functions.col("full_tweet"), "\t").alias("full_tweet_array")).drop("full_tweet")
+        inbound_dataset = inbound_dataset.withColumn("tweet_id", functions.col("full_tweet_array")[0])
+        inbound_dataset = inbound_dataset.withColumn("date", functions.col("full_tweet_array")[1])
+        inbound_dataset = inbound_dataset.withColumn("query", functions.col("full_tweet_array")[2])
+        inbound_dataset = inbound_dataset.withColumn("user", functions.col("full_tweet_array")[3])
+        inbound_dataset = inbound_dataset.withColumn("tweet", functions.col("full_tweet_array")[4])
 
-        wordsDataFrame.show()
+        outbound_dataset = classify_tweets(inbound_dataset)
+        outbound_dataset.describe()
+        mongo_items = outbound_dataset.select(
+            functions.col("tweet_id").cast("string").alias("_id"), 
+            functions.col("date"), 
+            functions.col("query").cast("string"), 
+            functions.col("user").cast("string"), 
+            functions.col("tweet").cast("string"), 
+            functions.col("label_predicted").cast("string"),
+            functions.col("probability").cast("float")
+        )
+        
+        mongo_items.write.format("mongo").mode("append").option("database",
+            "twitter_analysis").option("collection", "sentiment_analysis").save()
+#     # #         db_name = mongo_client["twitter_analysis"]
+#     # # db_collection = db_name["sentiment_analysis"]
+# # store_into_database(tweet_id, date, query, user, tweet, polarity, probability)
 
+#         udf_store_into_database = functions.udf(store_into_database)
+#         outbound_dataset = outbound_dataset.withColumn(
+#             "status",
+#             udf_store_into_database(
+#                 functions.col("_id"),
+#                 functions.col("date"),
+#                 functions.col("query"),
+#                 functions.col("user"),
+#                 functions.col("tweet"),
+#                 functions.col("label_predicted"),
+#                 functions.col("probability")
+#             )
+        
+#         )
+            
+
+        outbound_dataset.select("tweet_id", "date", "query", "user", "tweet", "label_predicted", "probability", "status").show()
+# https://spark.apache.org/docs/latest/streaming-programming-guide.html#dataframe-and-sql-operations
+# https://docs.cloudera.com/documentation/enterprise/latest/topics/cdh_ig_running_spark_on_yarn.html
+# https://sparkbyexamples.com/spark/spark-submit-command/
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Twitter sentiment analysis classification")
-    parser.add_argument("--probability_threshold", type=float, default=None, 
-        help="an numeric between 0.5 and 1 that will be used as a threshold to classify the tweet. If probability is lower than it, then the twitter is classified as neutral (polarity=2)")
-    parser.add_argument("--test", dest="test", action="store_true",
-        help="run the classification for the test file available and save it to /test folder")
-    parser.add_argument("--search_keyword", type=str, 
-        help="a word used to search Twitter")
-    parser.add_argument("--fetch_size", type=int, default=100, 
-        help="an integer with the amount of tweets to fetch during each run (default is 100)")
+    if test_execution == True:
+        # Start Spark session, load the dataset into a Spark DataFrame and then adjust column names
+                    # 
+        spark = SparkSession \
+            .builder \
+            .appName("Twitter Sentiment Analysis") \
+            .config("spark.jars", "mongo-spark-connector_2.12-3.0.1.jar") \
+            .config("spark.jars.packages", "org.mongodb.spark:mongo-spark-connector_2.12:3.0.1")\
+            .config("spark.mongodb.input.uri", mongo_connection_string) \
+            .config("spark.mongodb.output.uri", mongo_connection_string) \
+            .getOrCreate()
+        # spark = SparkSession.builder.master("local").appName("Training Twitter Sentiment Analysis").getOrCreate()
+        inbound_dataset = load_test_dataset(spark)
+        
+        outbound_dataset = classify_tweets(inbound_dataset)
 
+        # Saving evaluation with test dataset
+        # It is important to note that our training set didn't have any Neutral (polarity = 2) single case
+        test_folder = os.path.join(os.getcwd(), 'test_model')    
+        if not os.path.exists(test_folder):
+            os.makedirs(test_folder)
 
-    args = parser.parse_args()
-    if "probability_threshold" in args:
-        probability_threshold = args.probability_threshold
+        total = outbound_dataset.count()
+        correct = outbound_dataset.where(outbound_dataset['label'] == outbound_dataset['label_predicted']).count()
+        accuracy = correct/total
+        sys.stdout = open(os.path.join(test_folder, "evaluation.txt"), "w")
+        print(
+            "\nTotal:", total, 
+            "\nCorrect:", correct, 
+            "\nAccuracy:", accuracy)
+        sys.stdout.close()
+
+        # Save Dataset
+        file_name = os.path.join(test_folder, "outbound_test.csv")
+        outbound_dataset = outbound_dataset.select("label", "tweet_id", "date", "user", "tweet", "label_predicted", "probability")
+        outbound_dataset.toPandas().to_csv(file_name, index=False)
+
+        outbound_dataset = outbound_dataset.select(
+            functions.col("tweet_id").cast("string").alias("_id"), 
+            functions.col("date"), 
+            #functions.col("query").cast("string"), 
+            functions.col("user").cast("string"), 
+            functions.col("tweet").cast("string"), 
+            functions.col("label_predicted").cast("string"),
+            functions.col("probability").cast("float")
+        )
+        
+        outbound_dataset.write.format("mongo").mode("append").option("database",
+            "twitter_analysis").option("collection", "sentiment_analysis_test").save()
+        outbound_dataset.show()
     else:
-        probability_threshold = 0
+        os.system("clear")
+        # conf = SparkConf().set("spark.jars", "mongo-spark-connector_2.12-3.0.1.jar")
+        sc = SparkContext()
+        ssc = StreamingContext(sc, 60)
 
-    if "test" in args:
-        if args.test == True:
-            # Start Spark session, load the dataset into a Spark DataFrame and then adjust column names
-            spark = SparkSession.builder.master("local").appName("Training Twitter Sentiment Analysis").getOrCreate()
-            inbound_dataset = load_test_dataset(spark)
-            
-            outbound_dataset = classify_tweets(inbound_dataset, probability_threshold)
+        TCP_IP = parameters["spark"]["host"]
+        TCP_PORT = parameters["spark"]["port"]
+        tweet_stream = ssc.socketTextStream(TCP_IP, TCP_PORT)
 
-            
-            # Saving evaluation with test dataset
-            # It is important to note that our training set didn't have any Neutral (polarity = 2) single case
+        ##tweet_stream = tweet_stream.flatMap(lambda line: line.split("\t"))
+        tweet_stream.foreachRDD(process_streaming)
 
-            test_folder = os.path.join(os.getcwd(), 'test_model')    
-            if not os.path.exists(test_folder):
-                os.makedirs(test_folder)
+        # start the streaming computation
+        ssc.start()
 
-            total = outbound_dataset.count()
-            correct = outbound_dataset.where(outbound_dataset['labelIndex'] == outbound_dataset['NB_pred']).count()
-            accuracy = correct/total
-            sys.stdout = open(os.path.join(test_folder, "evaluation.txt"), "w")
-            print(
-                "\nTotal:", total, 
-                "\nCorrect:", correct, 
-                "\nAccuracy:", accuracy)
-            sys.stdout.close()
-
-            # Save Dataset
-            file_name = os.path.join(test_folder, "outbound_test.csv")
-            outbound_dataset = outbound_dataset.select("label", "tweet_id", "date", "user", "tweet", "label_predicted", "probability")
-            outbound_dataset.toPandas().to_csv(file_name, index=False)
-        else:
-            sc = SparkContext()
-            ssc = StreamingContext(sc, 60)
-
-            TCP_IP = parameters["spark"]["host"]
-            TCP_PORT = parameters["spark"]["port"]
-            dataStream = ssc.socketTextStream(TCP_IP, TCP_PORT)
-
-            dataStream.foreachRDD(process_streaming)
-
-            # start the streaming computation
-            ssc.start()
-
-            # wait for the streaming to finish
-            ssc.awaitTermination()
+        # wait for the streaming to finish
+        ssc.awaitTermination()
 
 
     # Delete temporary folder

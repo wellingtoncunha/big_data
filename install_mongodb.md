@@ -44,25 +44,26 @@ After login into EC2, perform the following steps:
     sudo apt-get install -y mongodb-org
     ```
 
-7. Start MongoDB service
+7. Change configuration to accept external calls
 
     ```bash
-    sudo systemctl start mongod
-    ```
-
-8. Change configuration to accept external calls
-
-    ```bash
-    nano /etc/mongod.conf
+    sudo nano /etc/mongod.conf
     ```
 
     replace the commented bindIp value 127.0.0.1 by 0.0.0.0
+
     ```bash
     # network interfaces
     net:
         port: 27017
     #  bindIp: 127.0.0.1  
-        bindIp: 0.0.0.0`
+        bindIp: 0.0.0.0
+    ```
+
+8. Start MongoDB service
+
+    ```bash
+    sudo systemctl start mongod
     ```
 
 9. Verify if MongoDB service has started successfully.

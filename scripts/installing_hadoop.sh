@@ -1,6 +1,7 @@
-scp -i ~/Downloads/hadoop.pem ~/Downloads/hadoop.pem ubuntu@54.235.4.48:~/.ssh/ 
+scp -i ~/Downloads/hadoop.pem ~/Downloads/hadoop.pem ubuntu@54.158.162.208:~/.ssh/ 
 
-ssh -i ~/Downloads/hadoop.pem ubuntu@54.235.4.48
+nano ~/.ssh/known_hosts
+ssh -i ~/Downloads/hadoop.pem ubuntu@54.158.162.208
 ssh -i ~/Downloads/hadoop.pem ubuntu@54.158.162.208
 
 import pymongo
@@ -13,34 +14,34 @@ myclient = pymongo.MongoClient("mongodb://mongoadmin:mongoadmin@localhost:27017/
 dblist = myclient.list_database_names()
 print(dblist)
 
-ip-172-31-25-68 hadoop-master
-ip-172-31-26-175 hadoop-slave-1
-ip-172-31-31-72 hadoop-slave-2
-ip-172-31-31-91 hadoop-slave-3
+ip-172-31-28-247 hadoop-master
+ip-172-31-25-71 hadoop-slave-1
+ip-172-31-29-236 hadoop-slave-2
+ip-172-31-23-58 hadoop-slave-3
 
 
 
 Host namenode
-    HostName ip-172-31-25-68
+    HostName ip-172-31-28-247
     User ubuntu
     IdentityFile ~/.ssh/hadoop.pem    
 Host datanode1
-    HostName ip-172-31-26-175
+    HostName ip-172-31-25-71
     User ubuntu
     IdentityFile ~/.ssh/hadoop.pem
 Host datanode2
-    HostName ip-172-31-31-72
+    HostName ip-172-31-29-236
     User ubuntu
     IdentityFile ~/.ssh/hadoop.pem
 Host datanode3
-    HostName ip-172-31-31-91
+    HostName ip-172-31-23-58
     User ubuntu
     IdentityFile ~/.ssh/hadoop.pem
 
 <configuration>
     <property>
         <name>fs.defaultFS</name>
-        <value>hdfs://ip-172-31-25-68:9000</value>
+        <value>hdfs://ip-172-31-28-247:9000</value>
     </property>
 </configuration>
 
@@ -51,14 +52,14 @@ Host datanode3
     </property>
     <property>
         <name>yarn.resourcemanager.hostname</name>
-        <value>ip-172-31-25-68</value>
+        <value>ip-172-31-28-247</value>
     </property>
 </configuration>
 
 <configuration>
     <property>
         <name>mapreduce.jobtracker.address</name>
-        <value>ip-172-31-25-68:54311</value>
+        <value>ip-172-31-28-247:54311</value>
     </property>
     <property>
         <name>mapreduce.framework.name</name>
@@ -166,17 +167,17 @@ sudo nano /etc/hosts
 
 sudo mkdir -p $HADOOP_HOME/data/hdfs/namenode
 
-ip-172-31-25-68
+ip-172-31-28-247
 
-ip-172-31-26-175
-ip-172-31-31-72
-ip-172-31-31-91
+ip-172-31-25-71
+ip-172-31-29-236
+ip-172-31-23-58
 
-ssh ip-172-31-26-175
-ssh ip-172-31-31-72
-ssh ip-172-31-31-91
+ssh ip-172-31-25-71
+ssh ip-172-31-29-236
+ssh ip-172-31-23-58
 
-54.235.4.48:50070
+54.158.162.208:50070
 
 
 $HADOOP_HOME/sbin/stop-all.sh

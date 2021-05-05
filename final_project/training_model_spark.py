@@ -3,10 +3,15 @@ import shutil
 import zipfile
 import argparse
 import sys
+import yaml
 from pyspark.sql import SparkSession, functions
 
 base_folder = os.getcwd()
 temporary_folder = os.path.join(os.getcwd(), "tmp")
+parameters = os.path.abspath(os.path.join(base_folder, "parameters.yaml"))
+parameters = yaml.load(open(parameters))
+sample_size = parameters["training"]["sample_size"]
+test_size_fraction = parameters["training"]["test_size_fraction"]
 
 def unzip_files():
 # Unzip file on a temporary folder
@@ -68,22 +73,6 @@ def preprocess_dataset(dataset):
     return dataset
 
 def main():
-    parser = argparse.ArgumentParser(description="Train ans save Twitter sentiment analysis classifier model")
-    parser.add_argument("--sample_size", type=int, default=None, 
-                        help="an integer informing the size of the sample to be taken from training dataset (if not informed, it will use the whole file")
-    parser.add_argument("--test_size_frac", type=float, default=.5, 
-                        help="an numeric between 0 and 1 informing the fraction of the lines from the sample that will be reserved for testing the dataset (if not informed, it will split the dataset in two)") 
-    args = parser.parse_args()
-    if "sample_size" in args:
-        sample_size = args.sample_size
-    else:
-        sample_size = None
-
-    if "test_size_frac" in args:
-        test_size_frac = args.test_size_frac
-    else:
-        test_size_frac = .5
-
     # Unzip file on a temporary folder                                         
     unzip_files()
 
@@ -99,15 +88,16 @@ def main():
         .withColumnRenamed("_c4", "user") \
         .withColumnRenamed("_c5", "tweet") 
 
-    # Load the amount of lines for training defined on arg sample_size
-    training_data = training_data.sample(sample_size / training_data.count())
+    # Load the amount of lines for training defined on arg sample_size. If equals zero, use the whole dataset
+    if sample_size > 0: 
+        training_data = training_data.sample(sample_size / training_data.count())
 
     # Preprocess dataset
     training_data = training_data.select(functions.col("label"), functions.col("tweet"))
     training_data = preprocess_dataset(training_data)
 
     # Split dataset into training and test according to test_size_frac arg
-    training, test = training_data.randomSplit([1 - test_size_frac, test_size_frac])
+    training, test = training_data.randomSplit([1 - test_size_fraction, test_size_fraction])
     
     # Training the model
     from pyspark.ml.classification import NaiveBayes
@@ -128,6 +118,14 @@ def main():
         
     model_full_path = os.path.join(model_folder, "twitter_sentiment_spark")
     nbModel.write().overwrite().save(model_full_path)
+
+
+    # Save Labels reference table    
+    labels = cv.select("labelIndex", "label").distinct() \
+        .withColumnRenamed("label", "label_predicted") \
+        .withColumnRenamed("labelIndex", "label_id")
+
+    labels.toPandas().to_csv(os.path.join(model_folder, "labels.csv"), index=False)
 
     # Save evaluations
     sys.stdout = open(os.path.join(model_folder, "evaluation.txt"), "w")
