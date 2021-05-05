@@ -20,6 +20,7 @@ pip3 install pyspark
 pip3 install numpy
 pip3 install nltk
 pip3 install bs4
+pip3 install pandas --upgrad
 
 cd /app/twitter_sentiment_analysis/
 # sudo nano python3 /app/twitter_sentiment_analysis/training_model_spark.py

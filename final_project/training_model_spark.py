@@ -16,13 +16,15 @@ nltk.download('punkt')
 # Start Spark session, load the dataset into a Spark DataFrame and then adjust column names
 spark = SparkSession.builder.appName("Training Twitter Sentiment Analysis").getOrCreate()
 
-base_folder = os.getcwd()
-temporary_folder = os.path.join(os.getcwd(), "tmp")
-parameters = os.path.abspath(os.path.join(base_folder, "parameters.yaml"))
+# Load execution parameter (we replaced args because it is easy for calling :) )
 parameters = yaml.load(open(parameters))
 sample_size = parameters["training"]["sample_size"]
 test_size_fraction = parameters["training"]["test_size_fraction"]
 files_source = parameters["training"]["files_source"]
+
+base_folder = os.getcwd()
+temporary_folder = os.path.join(os.getcwd(), "tmp")
+parameters = os.path.abspath(os.path.join(base_folder, "parameters.yaml"))
 
 def unzip_files():
 # Unzip file on a temporary folder
@@ -116,12 +118,15 @@ def main():
     accuracy = correct/total
 
     # Saving trained model for usage in a Pipeline (so you don't need to re-train everytime you need to use it)
-    model_folder = os.path.join(os.getcwd(), 'saved_models')
+    model_folder = os.path.join(base_folder, 'saved_models')
+    print(model_folder)
 
     if not os.path.exists(model_folder):
         os.makedirs(model_folder)
         
     model_full_path = os.path.join(model_folder, "twitter_sentiment_spark")
+    if files_source = "hdfs"
+        model_full_path = "file://" + model_full_path
     nbModel.write().overwrite().save(model_full_path)
 
 
