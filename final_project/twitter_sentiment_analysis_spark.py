@@ -75,7 +75,7 @@ def load_test_dataset(spark):
         test_dataset = spark.read.load(
             "/tmp/testdata.manual.2009.06.14.csv",
             format="csv")
-    elif:
+    else:
         test_dataset = spark.read.load(
             "tmp/testdata.manual.2009.06.14.csv",
             format="csv")
