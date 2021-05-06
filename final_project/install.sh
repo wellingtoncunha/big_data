@@ -3,15 +3,16 @@ clear
 cd ~/Downloads
 rm -rf ~/Downloads/big_data
 git clone https://github.com/wellingtoncunha/big_data.git
-sudo rm -rf /app/twitter_sentiment_analysis
-sudo mkdir -p /app/twitter_sentiment_analysis
-sudo chmod a+rwx /app/twitter_sentiment_analysis
+#sudo rm -rf /app/twitter_sentiment_analysis
+#sudo mkdir -p /app/twitter_sentiment_analysis
+#sudo chmod a+rwx /app/twitter_sentiment_analysis
 
 cd big_data/final_project
 sudo cp -r ~/Downloads/big_data/final_project/training_dataset/ /app/twitter_sentiment_analysis/
 sudo cp ~/Downloads/big_data/final_project/training_model_spark.py /app/twitter_sentiment_analysis/
 sudo cp ~/Downloads/big_data/final_project/twitter_streaming.py /app/twitter_sentiment_analysis/
 sudo cp ~/Downloads/big_data/final_project/twitter_sentiment_analysis_spark.py /app/twitter_sentiment_analysis/
+sudo cp ~/Downloads/big_data/final_project/mongo-spark-connector_2.12-3.0.1.jar /app/twitter_sentiment_analysis/
 touch /app/twitter_sentiment_analysis/parameters.yaml
 nano /app/twitter_sentiment_analysis/parameters.yaml
 

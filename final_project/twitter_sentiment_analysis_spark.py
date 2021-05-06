@@ -17,6 +17,7 @@ parameters = yaml.load(open(parameters))
 probability_threshold = parameters["classifying"]["probability_threshold"]
 test_execution = parameters["classifying"]["test_execution"]
 files_source = parameters["classifying"]["files_source"]
+scala_version = parameters["classifying"]["scala_version"]
 mongo_connection_string = (
     "mongodb://" + parameters["mongodb"]["user"] + 
     ":" + parameters["mongodb"]["password"] + 
@@ -26,11 +27,18 @@ mongo_connection_string = (
 )
 
 #if test_execution == False:
-conf = SparkConf()\
-    .set("spark.jars", "mongo-spark-connector_2.12-3.0.1.jar") \
-    .set("spark.jars.packages", "org.mongodb.spark:mongo-spark-connector_2.12:3.0.1") \
-    .set("spark.mongodb.input.uri", mongo_connection_string) \
-    .set("spark.mongodb.output.uri", mongo_connection_string)
+if scala_version == 2.11:
+    conf = SparkConf()\
+        .set("spark.jars", "mongo-spark-connector_2.11-2.4.3.jar") \
+        .set("spark.jars.packages", "org.mongodb.spark:mongo-spark-connector_2.11:2.4.3") \
+        .set("spark.mongodb.input.uri", mongo_connection_string) \
+        .set("spark.mongodb.output.uri", mongo_connection_string)
+else:
+    conf = SparkConf()\
+        .set("spark.jars", "mongo-spark-connector_2.12-3.0.1.jar") \
+        .set("spark.jars.packages", "org.mongodb.spark:mongo-spark-connector_2.12:3.0.1") \
+        .set("spark.mongodb.input.uri", mongo_connection_string) \
+        .set("spark.mongodb.output.uri", mongo_connection_string)
 sc = SparkContext(conf=conf)
 ssc = StreamingContext(sc, 60)
 
