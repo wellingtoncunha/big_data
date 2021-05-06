@@ -16,6 +16,7 @@ parameters = os.path.abspath(os.path.join(base_folder, "parameters.yaml"))
 parameters = yaml.load(open(parameters))
 probability_threshold = parameters["classifying"]["probability_threshold"]
 test_execution = parameters["classifying"]["test_execution"]
+files_source = parameters["classifying"]["files_source"]
 mongo_connection_string = (
     "mongodb://" + parameters["mongodb"]["user"] + 
     ":" + parameters["mongodb"]["password"] + 
@@ -70,10 +71,14 @@ def load_test_dataset(spark):
     with zipfile.ZipFile(local_file_name, 'r') as zip_ref:
         zip_ref.extractall(temporary_folder)
     
-
-    test_dataset = spark.read.load(
-        "tmp/testdata.manual.2009.06.14.csv",
-        format="csv")
+    if files_source == "hdfs"
+        test_dataset = spark.read.load(
+            "/tmp/testdata.manual.2009.06.14.csv",
+            format="csv")
+    elif:
+        test_dataset = spark.read.load(
+            "tmp/testdata.manual.2009.06.14.csv",
+            format="csv")
 
     test_dataset = test_dataset.withColumnRenamed("_c0", "label") \
         .withColumnRenamed("_c1", "tweet_id") \
