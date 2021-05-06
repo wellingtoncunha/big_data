@@ -253,11 +253,10 @@ def main():
         
         outbound_dataset.write.format("mongo").mode("append").option("database",
             "twitter_analysis").option("collection", "sentiment_analysis_test").save()
-        outbound_dataset.show()
+
     else:
         os.system("clear")
         # conf = SparkConf().set("spark.jars", "mongo-spark-connector_2.12-3.0.1.jar")
-
 
         TCP_IP = parameters["spark"]["host"]
         TCP_PORT = parameters["spark"]["port"]
