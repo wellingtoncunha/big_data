@@ -187,7 +187,7 @@ def process_streaming(time, rdd):
             functions.col("query").cast("string"), 
             functions.col("user").cast("string"), 
             functions.col("tweet").cast("string"), 
-            functions.col("label_predicted").cast("string"),
+            functions.col("label_predicpolarited").cast("string").alias("polarity"),
             functions.col("probability").cast("float")
         )
         
@@ -243,7 +243,6 @@ def main():
         outbound_dataset = outbound_dataset.select(
             functions.col("tweet_id").cast("string").alias("_id"), 
             functions.col("date"), 
-            #functions.col("query").cast("string"), 
             functions.col("user").cast("string"), 
             functions.col("tweet").cast("string"), 
             functions.col("label_predicted").cast("string"),
