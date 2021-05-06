@@ -10,6 +10,8 @@ sudo chmod a+rwx /app/twitter_sentiment_analysis
 cd big_data/final_project
 sudo cp -r ~/Downloads/big_data/final_project/training_dataset/ /app/twitter_sentiment_analysis/
 sudo cp ~/Downloads/big_data/final_project/training_model_spark.py /app/twitter_sentiment_analysis/
+sudo cp ~/Downloads/big_data/final_project/twitter_streaming.py /app/twitter_sentiment_analysis/
+sudo cp ~/Downloads/big_data/final_project/twitter_sentiment_analysis_spark.py /app/twitter_sentiment_analysis/
 touch /app/twitter_sentiment_analysis/parameters.yaml
 nano /app/twitter_sentiment_analysis/parameters.yaml
 
@@ -27,9 +29,13 @@ cd /app/twitter_sentiment_analysis/
 python3 /app/twitter_sentiment_analysis/training_model_spark.py
 # spark-submit --master yarn --deploy-mode cluster  /app/twitter_sentiment_analysis/training_model_spark.py
 
+pip3 install pymongo
+pip3 install requests_oauthlib
 
-import pip3 install requests_oauthlib
+cd /app/twitter_sentiment_analysis/
+python3 /app/twitter_sentiment_analysis/twitter_sentiment_analysis_spark.py
 
+sudo cp ~/Downloads/big_data/final_project/twitter_streaming.py /app/twitter_sentiment_analysis/
 sudo cp ~/Downloads/big_data/final_project/twitter_sentiment_analysis_spark.py /app/twitter_sentiment_analysis/
 
 
