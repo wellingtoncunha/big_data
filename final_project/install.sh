@@ -12,7 +12,7 @@ sudo cp -r ~/Downloads/big_data/final_project/training_dataset/ /app/twitter_sen
 sudo cp ~/Downloads/big_data/final_project/training_model_spark.py /app/twitter_sentiment_analysis/
 sudo cp ~/Downloads/big_data/final_project/twitter_streaming.py /app/twitter_sentiment_analysis/
 sudo cp ~/Downloads/big_data/final_project/twitter_sentiment_analysis_spark.py /app/twitter_sentiment_analysis/
-sudo cp ~/Downloads/big_data/final_project/mongo-spark-connector_2.12-3.0.1.jar /app/twitter_sentiment_analysis/
+sudo cp ~/Downloads/big_data/final_project/mongo-spark-connector_2.11-2.4.3.jar /app/twitter_sentiment_analysis/
 touch /app/twitter_sentiment_analysis/parameters.yaml
 nano /app/twitter_sentiment_analysis/parameters.yaml
 
@@ -32,10 +32,19 @@ python3 /app/twitter_sentiment_analysis/training_model_spark.py
 
 pip3 install pymongo
 
+cd /app/twitter_sentiment_analysis/
+python3 /app/twitter_sentiment_analysis/twitter_sentiment_analysis_spark.py
+
 pip3 install requests_oauthlib
 
 cd /app/twitter_sentiment_analysis/
-python3 /app/twitter_sentiment_analysis/twitter_sentiment_analysis_spark.py
+python3 /app/twitter_sentiment_analysis/twitter_streaming.py
+
+db.sentiment_analysis.find().limit(1).pretty();
+db.sentiment_analysys.findOne().sort({x:1}).pretty();
+
+
+sudo fuser -k 9009/tcp
 
 sudo cp ~/Downloads/big_data/final_project/twitter_streaming.py /app/twitter_sentiment_analysis/
 sudo cp ~/Downloads/big_data/final_project/twitter_sentiment_analysis_spark.py /app/twitter_sentiment_analysis/
