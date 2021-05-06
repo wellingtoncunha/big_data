@@ -25,35 +25,14 @@ mongo_connection_string = (
     "/" 
 )
 
-if test_execution == False:
-    conf = SparkConf()\
-        .set("spark.jars", "mongo-spark-connector_2.12-3.0.1.jar") \
-        .set("spark.jars.packages", "org.mongodb.spark:mongo-spark-connector_2.12:3.0.1") \
-        .set("spark.mongodb.input.uri", mongo_connection_string) \
-        .set("spark.mongodb.output.uri", mongo_connection_string)
-    sc = SparkContext(conf=conf)
-    ssc = StreamingContext(sc, 60)
-
-def store_into_database(tweet_id, date, query, user, tweet, polarity, probability):
-    db_name = mongo_client["twitter_analysis"]
-    db_collection = db_name["sentiment_analysis"]
-
-    #drop if exists based on ID
-    rows = db_collection.delete_many({"_id": tweet})
-    print(rows.deleted_count, "deleted")
-    #insert record
-    row = {
-        "_id": tweet_id,
-        "date": date,
-        "query": query,
-        "user": user,
-        "tweet": tweet,
-        "predicted": polarity,
-        "probability": probability
-    }     
-    rows = db_collection.insert_one(row)   
-    print(rows.inserted_id, "inserted")
-    return "Stored"
+#if test_execution == False:
+conf = SparkConf()\
+    .set("spark.jars", "mongo-spark-connector_2.12-3.0.1.jar") \
+    .set("spark.jars.packages", "org.mongodb.spark:mongo-spark-connector_2.12:3.0.1") \
+    .set("spark.mongodb.input.uri", mongo_connection_string) \
+    .set("spark.mongodb.output.uri", mongo_connection_string)
+sc = SparkContext(conf=conf)
+ssc = StreamingContext(sc, 60)
 
 def get_probability(probability_vector, predicted_label_index):
     probability_array = probability_vector.tolist()
@@ -216,15 +195,15 @@ def process_streaming(time, rdd):
 def main():
     if test_execution == True:
         # Start Spark session, load the dataset into a Spark DataFrame and then adjust column names
-                    # 
-        spark = SparkSession \
-            .builder \
-            .appName("Twitter Sentiment Analysis") \
-            .config("spark.jars", "mongo-spark-connector_2.12-3.0.1.jar") \
-            .config("spark.jars.packages", "org.mongodb.spark:mongo-spark-connector_2.12:3.0.1")\
-            .config("spark.mongodb.input.uri", mongo_connection_string) \
-            .config("spark.mongodb.output.uri", mongo_connection_string) \
-            .getOrCreate()
+        spark = getSparkSessionInstance(sc.getConf())
+        # spark = SparkSession \
+        #     .builder \
+        #     .appName("Twitter Sentiment Analysis") \
+        #     .config("spark.jars", "mongo-spark-connector_2.12-3.0.1.jar") \
+        #     .config("spark.jars.packages", "org.mongodb.spark:mongo-spark-connector_2.12:3.0.1")\
+        #     .config("spark.mongodb.input.uri", mongo_connection_string) \
+        #     .config("spark.mongodb.output.uri", mongo_connection_string) \
+        #     .getOrCreate()
         # spark = SparkSession.builder.master("local").appName("Training Twitter Sentiment Analysis").getOrCreate()
         inbound_dataset = load_test_dataset(spark)
         
@@ -236,6 +215,8 @@ def main():
         if not os.path.exists(test_folder):
             os.makedirs(test_folder)
 
+        # if files_source == "hdfs":
+            
         total = outbound_dataset.count()
         correct = outbound_dataset.where(outbound_dataset['label'] == outbound_dataset['label_predicted']).count()
         accuracy = correct/total
@@ -263,16 +244,13 @@ def main():
         
         outbound_dataset.write.format("mongo").mode("append").option("database",
             "twitter_analysis").option("collection", "sentiment_analysis_test").save()
-
     else:
         os.system("clear")
-        # conf = SparkConf().set("spark.jars", "mongo-spark-connector_2.12-3.0.1.jar")
 
         TCP_IP = parameters["spark"]["host"]
         TCP_PORT = parameters["spark"]["port"]
         tweet_stream = ssc.socketTextStream(TCP_IP, TCP_PORT)
 
-        ##tweet_stream = tweet_stream.flatMap(lambda line: line.split("\t"))
         tweet_stream.foreachRDD(process_streaming)
 
         # start the streaming computation
