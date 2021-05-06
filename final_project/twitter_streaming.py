@@ -51,7 +51,11 @@ def send_tweets_to_spark(http_response, tcp_connection):
                 # print(row)
                 tcp_connection.send(row.encode()) 
             except Exception as e:
-                print("Error (skipping tweet): %s" % e)
+                if e.errno == 32:
+                    print("Error: %s" % e)
+                    break
+                else:
+                    print("Warning (skipping tweet): %s" % e)
     except:
        	e = sys.exc_info()[0]
         print("Error: %s" % e)
