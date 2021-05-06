@@ -71,7 +71,7 @@ def load_test_dataset(spark):
     with zipfile.ZipFile(local_file_name, 'r') as zip_ref:
         zip_ref.extractall(temporary_folder)
     
-    if files_source == "hdfs"
+    if files_source == "hdfs":
         test_dataset = spark.read.load(
             "/tmp/testdata.manual.2009.06.14.csv",
             format="csv")
