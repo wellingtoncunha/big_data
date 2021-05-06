@@ -146,9 +146,14 @@ def classify_tweets(inbound_dataset):
     classified = loaded_model.transform(inbound_dataset)
 
     spark = getSparkSessionInstance(inbound_dataset.rdd.context.getConf())
-    labels = spark.read.load(
-        os.path.join(model_folder, "labels.csv"),
-        format="csv", header=True)
+    if files_source == "hdfs":
+        labels = spark.read.load(
+            os.path.join("file://" + model_folder, "labels.csv"),
+            format="csv", header=True)
+    else:
+        labels = spark.read.load(
+            os.path.join(model_folder, "labels.csv"),
+            format="csv", header=True)
 
     classified = classified.join(labels, classified["NB_pred"] == labels["label_id"])
 
