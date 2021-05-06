@@ -5,8 +5,26 @@ twitter: # Twitter credentials
   bearer_token: <Bearer Token generated when configuring the app on Twitter developer account>
   access_token: <Access Token that can be generated after the app on Twitter developer account is configured>
   access_token_secret: <Access Token Secret that can be generated after the app on Twitter developer account is configured>
+  query: # this element contains any desired query to be used when conecting to Twitter streaming API to filter results
+    - track: # Each element is a key word in search
+      - covid
+      - vaccine
+    - language: en # As we trained our model using english, it doesn't make sense classifying tweets in other languages
+    - locations: -130,-20,100,50  # Geolocation to restrict the results
 mongodb: # MongoDB Credentials
   user: <MongoDB User Name>
   password: <MongoDB User Password>
   host: <MongoDB Host IP or DNS>
   port: <MongoDB Port>
+spark:
+  host: localhost # The host of the streaming. It is used both on the streaming as well on Spark scripts
+  port: 9009 # The port of the streaming. It is used both on the streaming as well on Spark scripts
+training:
+  sample_size: 20000 # Indicates the sample size for training the model. If zero it will consider the whole dataset
+  test_size_fraction: .3 # The percentege of the training dataset that will be randomly set for evaluating the model
+  files_source: hdfs # hdfs or local - indicates if it is running on Hadoop (hdfs) or locally (local - used for Mac or Linux with no Hadoop AND spark installation)
+classifying:
+  probability_threshold: .7 # The probability for the classification. If under it, it will classify as 2-Neutral. If Neutral is not required, just set to .5
+  test_execution: False # Indicates if the execution is using the streaming socket or with the test local file
+  files_source: local # hdfs or local - indicates if it is running on Hadoop (hdfs) or locally (local - used for Mac or Linux with no Hadoop AND spark installation)
+  scala_version: 2.11 # Scala version: the spark mongo db connector version needs to match exactly with the version of Scala installed on the machine executing

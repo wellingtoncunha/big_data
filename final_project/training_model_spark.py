@@ -55,7 +55,6 @@ def cleansing(tweet):
     for each_word in tweet:
         if each_word not in terms_to_remove:
             words = words + " " + each_word
-    # return [word for word in tweet if word not in terms_to_remove]
     return words[1:]
 
 def main():

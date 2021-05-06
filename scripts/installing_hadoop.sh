@@ -14,34 +14,34 @@ myclient = pymongo.MongoClient("mongodb://mongoadmin:mongoadmin@localhost:27017/
 dblist = myclient.list_database_names()
 print(dblist)
 
-ip-172-31-28-247 hadoop-master
-ip-172-31-25-71 hadoop-slave-1
-ip-172-31-29-236 hadoop-slave-2
-ip-172-31-23-58 hadoop-slave-3
+ip-172-31-70-105 hadoop-master
+ip-172-31-66-7 hadoop-slave-1
+ip-172-31-79-135 hadoop-slave-2
+ip-172-31-75-182 hadoop-slave-3
 
 
 
 Host namenode
-    HostName ip-172-31-28-247
+    HostName ip-172-31-70-105
     User ubuntu
     IdentityFile ~/.ssh/hadoop.pem    
 Host datanode1
-    HostName ip-172-31-25-71
+    HostName ip-172-31-66-7
     User ubuntu
     IdentityFile ~/.ssh/hadoop.pem
 Host datanode2
-    HostName ip-172-31-29-236
+    HostName ip-172-31-79-135
     User ubuntu
     IdentityFile ~/.ssh/hadoop.pem
 Host datanode3
-    HostName ip-172-31-23-58
+    HostName ip-172-31-75-182
     User ubuntu
     IdentityFile ~/.ssh/hadoop.pem
 
 <configuration>
     <property>
         <name>fs.defaultFS</name>
-        <value>hdfs://ip-172-31-28-247:9000</value>
+        <value>hdfs://ip-172-31-70-105:9000</value>
     </property>
 </configuration>
 
@@ -52,14 +52,14 @@ Host datanode3
     </property>
     <property>
         <name>yarn.resourcemanager.hostname</name>
-        <value>ip-172-31-28-247</value>
+        <value>ip-172-31-70-105</value>
     </property>
 </configuration>
 
 <configuration>
     <property>
         <name>mapreduce.jobtracker.address</name>
-        <value>ip-172-31-28-247:54311</value>
+        <value>ip-172-31-70-105:54311</value>
     </property>
     <property>
         <name>mapreduce.framework.name</name>
@@ -90,9 +90,10 @@ ssh datanode1 sudo mkdir -p $HADOOP_HOME/data/hdfs/namenode &&
 echo "Setting ubuntu as Hadoop owner" &&
 ssh datanode1 sudo chown -R ubuntu $HADOOP_HOME
 echo "Installing Python and mrjob pip package"
-ssh datanode1 sudo apt install python3
-ssh datanode1 sudo apt install python3-pip
-ssh datanode1 pip3 install mrjob
+ssh datanode1 sudo apt install python3; ssh datanode1 sudo apt install python3-pip;
+ssh datanode1 pip3 install mrjob;
+ssh datanode1 pip3 install pyspark;
+ssh datanode1 export PYSPARK_PYTHON=python3;
 
 clear
 echo "Copying core-site.xml" &&
@@ -167,15 +168,15 @@ sudo nano /etc/hosts
 
 sudo mkdir -p $HADOOP_HOME/data/hdfs/namenode
 
-ip-172-31-28-247
+ip-172-31-70-105
 
-ip-172-31-25-71
-ip-172-31-29-236
-ip-172-31-23-58
+ip-172-31-66-7
+ip-172-31-79-135
+ip-172-31-75-182
 
-ssh ip-172-31-25-71
-ssh ip-172-31-29-236
-ssh ip-172-31-23-58
+ssh ip-172-31-66-7
+ssh ip-172-31-79-135
+ssh ip-172-31-75-182
 
 54.158.162.208:50070
 

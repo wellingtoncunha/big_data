@@ -10,6 +10,6 @@
 4. **[Done]** Code Twitter extractor (is in the same script of item 3)
 5. **[Done]** Code pipeline: Extract Twitter -> Classify (using model trained in step 2) -> store on DB (MongoDB) (is in the same script of item 3)
 6. **[Done]** Implement pyspark
-7. Implement Spark streaming
-8. Run on Hadoop
-9. Create report (with screenshots)
+7. **[Done]** Implement Spark streaming
+8. **[Done]** Run on Hadoop
+9. **[Done]** Create report (with screenshots)

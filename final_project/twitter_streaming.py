@@ -21,7 +21,6 @@ query = parameters["twitter"]["query"]
 
 def get_tweets():
     url = "https://stream.twitter.com/1.1/statuses/filter.json"
-    # query_data = [('language', 'en'), ('locations', '-130,-20,100,50')]
     query_url = ""
     for each_item in query:
         if "track" in each_item:

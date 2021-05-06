@@ -26,6 +26,7 @@ mongo_connection_string = (
     "/" 
 )
 
+### It is important to start the Spark session before declaring any UDF function
 #if test_execution == False:
 if scala_version == 2.11:
     conf = SparkConf()\
@@ -115,12 +116,6 @@ def classify_tweets(inbound_dataset):
     features_generator = HashingTF(inputCol="words", outputCol="features")
     inbound_dataset = features_generator.transform(inbound_dataset)
 
-    # # Generate label indexes
-    # from pyspark.ml.feature import StringIndexer
-    # string_indexer = StringIndexer(inputCol="label", outputCol="labelIndex")
-    # model = string_indexer.fit(inbound_dataset)
-    # inbound_dataset = model.transform(inbound_dataset)
-
     model_folder = os.path.join(os.getcwd(), "saved_models")
     model_full_path = os.path.join(model_folder, "twitter_sentiment_spark")
     if not os.path.exists(model_folder):
@@ -194,27 +189,11 @@ def process_streaming(time, rdd):
         mongo_items.write.format("mongo").mode("append").option("database",
             "twitter_analysis").option("collection", "sentiment_analysis").save()
 
-        #outbound_dataset.select("tweet_id", "date", "query", "user", "tweet", "label_predicted", "probability").show()
-# https://spark.apache.org/docs/latest/streaming-programming-guide.html#dataframe-and-sql-operations
-# https://docs.cloudera.com/documentation/enterprise/latest/topics/cdh_ig_running_spark_on_yarn.html
-# https://sparkbyexamples.com/spark/spark-submit-command/
-
-
 def main():
     if test_execution == True:
         # Start Spark session, load the dataset into a Spark DataFrame and then adjust column names
         spark = getSparkSessionInstance(sc.getConf())
-        # spark = SparkSession \
-        #     .builder \
-        #     .appName("Twitter Sentiment Analysis") \
-        #     .config("spark.jars", "mongo-spark-connector_2.12-3.0.1.jar") \
-        #     .config("spark.jars.packages", "org.mongodb.spark:mongo-spark-connector_2.12:3.0.1")\
-        #     .config("spark.mongodb.input.uri", mongo_connection_string) \
-        #     .config("spark.mongodb.output.uri", mongo_connection_string) \
-        #     .getOrCreate()
-        # spark = SparkSession.builder.master("local").appName("Training Twitter Sentiment Analysis").getOrCreate()
         inbound_dataset = load_test_dataset(spark)
-        
         outbound_dataset = classify_tweets(inbound_dataset)
 
         # Saving evaluation with test dataset
@@ -222,8 +201,6 @@ def main():
         test_folder = os.path.join(os.getcwd(), 'test_model')    
         if not os.path.exists(test_folder):
             os.makedirs(test_folder)
-
-        # if files_source == "hdfs":
             
         total = outbound_dataset.count()
         correct = outbound_dataset.where(outbound_dataset['label'] == outbound_dataset['label_predicted']).count()
